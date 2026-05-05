@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>p5.strandsReveal demo</title>
+        <script src="https://cdn.jsdelivr.net/npm/p5@2.2.3/lib/p5.js"></script>
+        <script src="./p5.strandsReveal.js"></script>
+        <script src="./sketch.js"></script>
+    </head>
+    <body>
+        <button id="reveal">Log transpile to console</button>
+
+        <script lang="js">
+            //hook up a button to show the most recent transpilation
+            //note there are other p5.strandsReveal calls we could make to have more control of the output
+            document
+                .getElementById("reveal")
+                .addEventListener("click", () => p5.strandsReveal.log());
+        </script>
+    </body>
+</html>
