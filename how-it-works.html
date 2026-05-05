@@ -1,192 +1,83 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>How p5.strandsReveal works</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 24px 32px;
-        background: #111;
-        color: #ddd;
-        font: 15px/1.55 system-ui, sans-serif;
-        max-width: 820px;
-      }
-      h1 { font-size: 22px; margin: 0 0 4px; }
-      h2 { font-size: 17px; margin: 28px 0 8px; color: #fff; }
-      p, li { color: #ccc; }
-      a { color: #8cf; }
-      code {
-        background: #1c1c1c;
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-family: ui-monospace, Menlo, monospace;
-        font-size: 13px;
-      }
-      pre {
-        background: #1c1c1c;
-        color: #e6e6e6;
-        padding: 12px;
-        border-radius: 6px;
-        overflow: auto;
-        font-family: ui-monospace, Menlo, monospace;
-        font-size: 12.5px;
-        line-height: 1.45;
-      }
-      .note {
-        border-left: 3px solid #6a8;
-        padding: 6px 12px;
-        background: #181f1c;
-        color: #cfe;
-        margin: 12px 0;
-      }
-      nav { margin-bottom: 16px; }
-    </style>
-  </head>
-  <body>
-    <nav><a href="./demo.html">&larr; back to demo</a></nav>
+    <head>
+        <meta charset="utf-8" />
+        <title>How p5.strandsReveal works</title>
+    </head>
+    <body>
+        <nav><a href="./index.html">&larr; back to demo</a></nav>
 
-    <h1>How <code>p5.strandsReveal</code> works</h1>
-    <p>
-      A short tour of what the addon actually does, and why this approach was
-      chosen over the more obvious ones.
-    </p>
+        <h1>How <code>p5.strandsReveal</code> works</h1>
+        <p>
+            A short tour of what the addon actually does, and why this approach
+            was chosen over the more obvious ones.
+        </p>
 
-    <h2>What we're trying to see</h2>
-    <p>
-      When you write a p5.strands shader callback like:
-    </p>
-<pre>function invertFilter() {
+        <h2>What we're trying to see</h2>
+        <p>When you write a p5.strands shader callback like:</p>
+        <pre>
+function invertFilter() {
   filterColor.begin();
   let c = getTexture(filterColor.canvasContent, filterColor.texCoord);
   filterColor.set([1 - c.r, 1 - c.g, 1 - c.b, c.a]);
   filterColor.end();
-}</pre>
-    <p>
-      …and pass it to <code>buildFilterShader(invertFilter)</code>, p5.strands
-      doesn't run that function directly. It first <em>transpiles</em> the
-      source: arithmetic operators become <code>add</code>/<code>mult</code>/etc.
-      calls on strands nodes, member assignments are rewritten, control flow is
-      restructured, and so on. The resulting JavaScript is what actually
-      executes to build the IR that the GLSL/WGSL backends compile.
-    </p>
-    <p>
-      You can already get the generated GLSL out of strands. The transpiled
-      JavaScript, however, only exists as a string inside the transpiler &mdash;
-      it gets handed straight to <code>new Function(...)</code> and discarded.
-    </p>
-    <p>
-      I checked the strands source carefully before writing this, because
-      &ldquo;there&rsquo;s no public way&rdquo; is the kind of claim that ages badly. As of
-      p5 v2.2.3 the codebase actively confirms it:
-    </p>
-    <ul>
-      <li>
-        <code>src/strands/p5.strands.js:136</code> has the comment
-        <em>&ldquo;TODO: expose this, is internal for debugging for now&rdquo;</em>
-        sitting directly above the lines that force
-        <code>options.parser = true</code> and <code>options.srcLocations = false</code>.
-        The maintainers note explicitly that the parser knobs are not yet exposed.
-      </li>
-      <li>
-        Those same two lines unconditionally overwrite whatever
-        <code>options</code> the caller passed in &mdash; so attempting
-        <code>shader.modify(cb, scope, { parser: false })</code> from outside is
-        silently ignored.
-      </li>
-      <li>
-        <code>src/strands/strands_transpiler.js</code> only logs
-        <code>transpiledSource</code>, <code>body</code>, or <code>paramNames</code>
-        on error paths (lines 1774, 1800&ndash;1801). On the happy path the
-        body string is passed straight into <code>new Function(...)</code> and
-        not retained.
-      </li>
-      <li>
-        <code>transpileStrandsToJS</code> is exported but only imported by
-        <code>p5.strands.js</code> itself, and it returns the wrapped callable,
-        not the source string &mdash; so even calling it directly from an addon
-        wouldn&rsquo;t hand you the JS without re-running the regex extraction.
-      </li>
-      <li>
-        <code>src/strands/strands_api.js</code> exposes user-facing nodes,
-        operators, and helpers, but no debug/inspect surface. There is no
-        environment flag (no <code>DEBUG_STRANDS</code>, no
-        <code>verbose</code>, etc.) anywhere in the strands tree.
-      </li>
-      <li>
-        <code>contributor_docs/p5.strands.md</code> describes the transpile
-        pipeline but doesn&rsquo;t document any way to read the intermediate JS
-        from a sketch.
-      </li>
-    </ul>
-    <p>
-      So until that <code>TODO</code> ships, the only way to see this code from
-      outside the engine is to set a breakpoint inside the running callback and
-      poke around in the debugger &mdash; or do something like this addon.
-    </p>
+}</pre
+        >
+        <p>
+            …and pass it to <code>buildFilterShader(invertFilter)</code>,
+            p5.strands doesn't run that function directly. It first
+            <em>transpiles</em> the source: arithmetic operators become
+            <code>add</code>/<code>mult</code>/etc. calls on strands nodes,
+            member assignments are rewritten, control flow is restructured, and
+            so on. The resulting JavaScript is what actually executes to build
+            the IR that the GLSL/WGSL backends compile.
+        </p>
+        <p>
+            You can already get the generated GLSL out of strands. The
+            transpiled JavaScript, however, only exists as a string inside the
+            transpiler &mdash; it gets handed straight to
+            <code>new Function(...)</code> and discarded.
+        </p>
 
-    <h2>Where the transpile happens</h2>
-    <p>
-      All the <code>buildXxxShader</code> functions (<code>buildFilterShader</code>,
-      <code>buildMaterialShader</code>, <code>buildColorShader</code>,
-      <code>buildNormalShader</code>, <code>buildStrokeShader</code>) are
-      one-line wrappers around <code>baseXxxShader().modify(callback)</code>.
-      The strands addon installs its transpilation logic by overriding
-      <code>p5.Shader.prototype.modify</code>. So the single right place to
-      intercept is <code>modify</code> &mdash; one wrap covers every
-      <code>build*Shader</code> entry point.
-    </p>
-    <p>
-      Inside that overridden <code>modify</code>, the relevant call looks like
-      this (paraphrased from
-      <code>src/strands/strands_transpiler.js</code>):
-    </p>
-<pre>const transpiledSource = escodegen.generate(ast); // the JS we want
+        <h2>Where the transpile happens</h2>
+        <p>
+            All the <code>buildXxxShader</code> functions
+            (<code>buildFilterShader</code>, <code>buildMaterialShader</code>,
+            <code>buildColorShader</code>, <code>buildNormalShader</code>,
+            <code>buildStrokeShader</code>) are one-line wrappers around
+            <code>baseXxxShader().modify(callback)</code>. The strands addon
+            installs its transpilation logic by overriding
+            <code>p5.Shader.prototype.modify</code>. So the single right place
+            to intercept is <code>modify</code> &mdash; one wrap covers every
+            <code>build*Shader</code> entry point.
+        </p>
+        <p>
+            Inside that overridden <code>modify</code>, the relevant call looks
+            like this (paraphrased from
+            <code>src/strands/strands_transpiler.js</code>):
+        </p>
+        <pre>
+const transpiledSource = escodegen.generate(ast); // the JS we want
 // ...regex-extract params and body from transpiledSource...
 const internalStrandsCallback = new Function(
   '__p5',
   ...paramNames,
   body,
 );
-return () =&gt; internalStrandsCallback(p5, ...paramVals);</pre>
-    <p>
-      The string is right there for a moment, then it's lost.
-    </p>
+return () =&gt; internalStrandsCallback(p5, ...paramVals);</pre
+        >
+        <p>The string is right there for a moment, then it's lost.</p>
 
-    <h2>Approaches I considered, and why I didn't pick them</h2>
-    <ul>
-      <li>
-        <strong>Proxy <code>buildFilterShader</code> and friends.</strong>
-        Wrong layer. There are five+ such functions, and they all funnel into
-        <code>modify</code>. Wrap the funnel, not each tributary.
-      </li>
-      <li>
-        <strong>Re-import <code>transpileStrandsToJS</code> and call it
-        myself.</strong> It's exported, but it doesn't return the source
-        string &mdash; only the wrapped callable. Reproducing the regex extract
-        means depending on transpiler internals.
-      </li>
-      <li>
-        <strong>Re-run the transform from scratch with my own copy of acorn +
-        escodegen.</strong> Possible but heavy: the transpiler does several AST
-        passes specific to strands. A separate copy will drift from the real
-        one over p5 versions.
-      </li>
-      <li>
-        <strong>Patch <code>escodegen.generate</code>.</strong> Cleanly
-        captures the exact string, but escodegen is bundled inside p5 &mdash;
-        I can't reach the module instance the transpiler closed over.
-      </li>
-    </ul>
-
-    <h2>The approach used: shim <code>Function</code> across one call</h2>
-    <p>
-      The transpiler eventually constructs the runtime callback with
-      <code>new Function('__p5', ...paramNames, body)</code>. <code>Function</code>
-      is a global, so substitute the global for the duration of one
-      <code>modify()</code> call, capture the arguments, then restore it.
-    </p>
-<pre>const origModify = p5.Shader.prototype.modify;
+        <h2>The approach used: shim <code>Function</code> across one call</h2>
+        <p>
+            The transpiler eventually constructs the runtime callback with
+            <code>new Function('__p5', ...paramNames, body)</code>.
+            <code>Function</code>
+            is a global, so substitute the global for the duration of one
+            <code>modify()</code> call, capture the arguments, then restore it.
+        </p>
+        <pre>
+const origModify = p5.Shader.prototype.modify;
 
 p5.Shader.prototype.modify = function (cb, scope, options) {
   if (typeof cb !== 'function' &amp;&amp; typeof cb !== 'string') {
@@ -222,63 +113,185 @@ p5.Shader.prototype.modify = function (cb, scope, options) {
     };
   }
   return shader;
-};</pre>
+};</pre
+        >
 
-    <h2>Why this is safer than it looks</h2>
-    <ul>
-      <li>
-        <strong>The shim window is one synchronous call.</strong>
-        <code>modify</code> doesn't <code>await</code> anything; the
-        <code>finally</code> always restores <code>Function</code> before any
-        other code can observe the swap.
-      </li>
-      <li>
-        <strong>It only captures calls whose first arg is
-        <code>'__p5'</code>.</strong> That's the strands transpiler's
-        signature. If something else happens to call <code>new Function(...)</code>
-        during <code>modify</code>, it's passed through to the real
-        <code>Function</code> and not recorded.
-      </li>
-      <li>
-        <strong>No reliance on transpiler internals.</strong> If strands tweaks
-        its AST passes or its escodegen options, this addon keeps working as
-        long as the final step still goes through <code>new Function(...)</code>
-        with <code>__p5</code> as the first arg.
-      </li>
-    </ul>
+        <h2>Why this is safer than it looks</h2>
+        <ul>
+            <li>
+                <strong>The shim window is one synchronous call.</strong>
+                <code>modify</code> doesn't <code>await</code> anything; the
+                <code>finally</code> always restores
+                <code>Function</code> before any other code can observe the
+                swap.
+            </li>
+            <li>
+                <strong
+                    >It only captures calls whose first arg is
+                    <code>'__p5'</code>.</strong
+                >
+                That's the strands transpiler's signature. If something else
+                happens to call <code>new Function(...)</code> during
+                <code>modify</code>, it's passed through to the real
+                <code>Function</code> and not recorded.
+            </li>
+            <li>
+                <strong>No reliance on transpiler internals.</strong> If strands
+                tweaks its AST passes or its escodegen options, this addon keeps
+                working as long as the final step still goes through
+                <code>new Function(...)</code> with <code>__p5</code> as the
+                first arg.
+            </li>
+        </ul>
 
-    <h2>Order of registration</h2>
-    <p>
-      <code>p5.registerAddon</code> runs synchronously
-      (<code>src/core/main.js</code>). p5 v2 registers the strands addon
-      itself when the bundle loads, so by the time
-      <code>p5.strandsReveal.js</code> runs, <code>p5.Shader.prototype.modify</code>
-      is already the strands-wrapped one. The script order in
-      <code>demo.html</code> reflects that:
-    </p>
-<pre>&lt;script src="https://cdn.jsdelivr.net/npm/p5@2.2.3/lib/p5.js"&gt;&lt;/script&gt;
+        <h2>Order of registration</h2>
+        <p>
+            <code>p5.registerAddon</code> runs synchronously
+            (<code>src/core/main.js</code>). p5 v2 registers the strands addon
+            itself when the bundle loads, so by the time
+            <code>p5.strandsReveal.js</code> runs,
+            <code>p5.Shader.prototype.modify</code>
+            is already the strands-wrapped one. The script order in
+            <code>index.html</code> reflects that:
+        </p>
+        <pre>
+&lt;script src="https://cdn.jsdelivr.net/npm/p5@2.2.3/lib/p5.js"&gt;&lt;/script&gt;
 &lt;script src="./p5.strandsReveal.js"&gt;&lt;/script&gt;
-&lt;script src="./sketch.js"&gt;&lt;/script&gt;</pre>
+&lt;script src="./sketch.js"&gt;&lt;/script&gt;</pre
+        >
 
-    <h2>Reading the captures back</h2>
-    <p>Several equivalent ways, pick whichever fits:</p>
-    <ul>
-      <li><code>myShader._strandsTranspiledJS</code> &mdash; record attached directly to the shader.</li>
-      <li><code>getStrandsTranspile(myShader)</code> &mdash; helper, returns the record.</li>
-      <li><code>revealStrandsTranspile(myShader)</code> &mdash; helper, pretty-prints original and transpiled to the console.</li>
-      <li><code>p5.strandsReveal.last</code> &mdash; the most recent capture across any shader.</li>
-      <li><code>p5.strandsReveal.history</code> &mdash; an array of every capture this session.</li>
-      <li><code>p5.strandsReveal.log()</code> / <code>.clear()</code> &mdash; namespace methods.</li>
-    </ul>
+        <h2>Reading the captures back</h2>
+        <p>Several equivalent ways, pick whichever fits:</p>
+        <ul>
+            <li>
+                <code>myShader._strandsTranspiledJS</code> &mdash; record
+                attached directly to the shader.
+            </li>
+            <li>
+                <code>getStrandsTranspile(myShader)</code> &mdash; helper,
+                returns the record.
+            </li>
+            <li>
+                <code>revealStrandsTranspile(myShader)</code> &mdash; helper,
+                pretty-prints original and transpiled to the console.
+            </li>
+            <li>
+                <code>p5.strandsReveal.last</code> &mdash; the most recent
+                capture across any shader.
+            </li>
+            <li>
+                <code>p5.strandsReveal.history</code> &mdash; an array of every
+                capture this session.
+            </li>
+            <li>
+                <code>p5.strandsReveal.log()</code> /
+                <code>.clear()</code> &mdash; namespace methods.
+            </li>
+        </ul>
 
-    <div class="note">
-      <strong>Caveat.</strong> If a future build of p5 inlines or aliases
-      <code>Function</code> at module load (some bundlers do this for
-      built-ins), the global swap won't be seen by the transpiler. That hasn't
-      happened in the versions tested, but it's the failure mode to keep an
-      eye on.
-    </div>
+        <div class="note">
+            <strong>Caveat.</strong> If a future build of p5 inlines or aliases
+            <code>Function</code> at module load (some bundlers do this for
+            built-ins), the global swap won't be seen by the transpiler. That
+            hasn't happened in the versions tested, but it's the failure mode to
+            keep an eye on.
+        </div>
 
-    <nav style="margin-top: 28px"><a href="./demo.html">&larr; back to demo</a></nav>
-  </body>
+        <h2>Alternative approaches I considered, and why I didn't pick them</h2>
+        <ul>
+            <li>
+                <strong
+                    >Proxy <code>buildFilterShader</code> and friends.</strong
+                >
+                Wrong layer. There are five+ such functions, and they all funnel
+                into
+                <code>modify</code>. Wrap the funnel, not each tributary.
+            </li>
+            <li>
+                <strong
+                    >Re-import <code>transpileStrandsToJS</code> and call it
+                    myself.</strong
+                >
+                It's exported, but it doesn't return the source string &mdash;
+                only the wrapped callable. Reproducing the regex extract means
+                depending on transpiler internals.
+            </li>
+            <li>
+                <strong
+                    >Re-run the transform from scratch with my own copy of acorn
+                    + escodegen.</strong
+                >
+                Possible but heavy: the transpiler does several AST passes
+                specific to strands. A separate copy will drift from the real
+                one over p5 versions.
+            </li>
+            <li>
+                <strong>Patch <code>escodegen.generate</code>.</strong> Cleanly
+                captures the exact string, but escodegen is bundled inside p5
+                &mdash; I can't reach the module instance the transpiler closed
+                over.
+            </li>
+        </ul>
+
+        <h2>Definitely not exposed?</h2>
+        <p>
+            I checked the strands source carefully to check the API doesn't have
+            a more direct way to access the transpiled code. As of p5 v2.2.3 the
+            codebase actively confirms it:
+        </p>
+        <ul>
+            <li>
+                <code>src/strands/p5.strands.js:136</code> has the comment
+                <em
+                    >&ldquo;TODO: expose this, is internal for debugging for
+                    now&rdquo;</em
+                >
+                sitting directly above the lines that force
+                <code>options.parser = true</code> and
+                <code>options.srcLocations = false</code>. The maintainers note
+                explicitly that the parser knobs are not yet exposed.
+            </li>
+            <li>
+                Those same two lines unconditionally overwrite whatever
+                <code>options</code> the caller passed in &mdash; so attempting
+                <code>shader.modify(cb, scope, { parser: false })</code> from
+                outside is silently ignored.
+            </li>
+            <li>
+                <code>src/strands/strands_transpiler.js</code> only logs
+                <code>transpiledSource</code>, <code>body</code>, or
+                <code>paramNames</code> on error paths (lines 1774,
+                1800&ndash;1801). On the happy path the body string is passed
+                straight into <code>new Function(...)</code> and not retained.
+            </li>
+            <li>
+                <code>transpileStrandsToJS</code> is exported but only imported
+                by <code>p5.strands.js</code> itself, and it returns the wrapped
+                callable, not the source string &mdash; so even calling it
+                directly from an addon wouldn&rsquo;t hand you the JS without
+                re-running the regex extraction.
+            </li>
+            <li>
+                <code>src/strands/strands_api.js</code> exposes user-facing
+                nodes, operators, and helpers, but no debug/inspect surface.
+                There is no environment flag (no <code>DEBUG_STRANDS</code>, no
+                <code>verbose</code>, etc.) anywhere in the strands tree.
+            </li>
+            <li>
+                <code>contributor_docs/p5.strands.md</code> describes the
+                transpile pipeline but doesn&rsquo;t document any way to read
+                the intermediate JS from a sketch.
+            </li>
+        </ul>
+        <p>
+            So until that <code>TODO</code> ships, the only way to see this code
+            from outside the engine is to set a breakpoint inside the running
+            callback and poke around in the debugger &mdash; or do something
+            like this addon.
+        </p>
+
+        <nav style="margin-top: 28px">
+            <a href="./index.html">&larr; back to demo</a>
+        </nav>
+    </body>
 </html>
