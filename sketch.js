@@ -1,3 +1,5 @@
+// note this sketch knows nothing about the fact that its call
+// buildFilterShader() / modify() call will be intercepted
 let myShader;
 
 function setup() {
